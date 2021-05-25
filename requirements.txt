@@ -28,3 +28,4 @@ joblib
 memoized-property
 termcolor
 earthengine-api
+folium
