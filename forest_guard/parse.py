@@ -58,5 +58,5 @@ def get_eval_dataset(folder, batch_size=16, buffer_size = 2000):
     """
     glob = 'gs://' + BUCKET + '/' + folder + '/' + EVAL_BASE + '*'
     dataset = get_dataset(glob)
-    dataset = dataset.shuffle(buffer_size).batch(batch_size).repeat()
+    dataset = dataset.batch(1).repeat()
     return dataset
