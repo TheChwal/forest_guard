@@ -91,7 +91,7 @@ class Trainer():
             pickle.dump(history.history, file_pi)
         
         client = storage.Client().bucket(BUCKET)
-        storage_location = '{}/{}/history'.format(MODEL_STORAGE_LOCATION, self.model_output_name)
+        storage_location = '{}{}history'.format(MODEL_STORAGE_LOCATION, 'history_'+self.model_output_name)
         blob = client.blob(storage_location)
         
         blob.upload_from_filename('trainHistoryDict')
@@ -159,6 +159,24 @@ class Trainer():
     #         self.mlflow_log_metric('cross_val', cv)
     #     return cv
 
+    def metrics_to_mlflow(self, history):
+        ''' write metrics in mlflow'''
+        last_training_loss= history.history['loss'][-1]
+        last_val_loss=history.history['val_loss'][-1]
+        
+        last_val_mean_io_u=history.history.get('val_mean_io_u',[0])[-1]
+        if last_val_mean_io_u == 0:
+            last_val_mean_io_u==history.history.get('val_mean_io_u_1',[0])[-1]
+        
+        last_val_accuracy=history.history['val_accuracy'][-1]
+        
+        self.mlflow_log_metric('last_loss', last_training_loss)
+        self.mlflow_log_metric('last_val_loss', last_val_loss)
+        self.mlflow_log_metric('last_val_mean_io_u', last_val_mean_io_u)
+        self.mlflow_log_metric('last_val_accuracy', last_val_accuracy)
+        return None
+
+
     # def evaluate(self, X_test, y_test):
     #     """evaluates the pipeline on df_test and return the RMSE"""
     #     y_pred = self.pipeline.predict(X_test)
@@ -170,11 +188,7 @@ class Trainer():
 
 
 if __name__ == "__main__":
-    # get data
-    
-    # clean data
-    
-    # set X and y, val and train
+
     #get training and eval
     training = get_training_dataset(FOLDER)
     evaluation = get_eval_dataset(FOLDER)
@@ -182,18 +196,19 @@ if __name__ == "__main__":
     # hold out
     
     # train
-    print('instantiate trainer')
-    trainer = Trainer('test_model', pretrained_google=False, model_input_name='model_trained')
+    print('\n', 'instantiate trainer')
+    trainer = Trainer('test_model')
     
-    print('download model')
+    print('\n', 'download model')
     trainer.download_model_from_gcp()
     
-    print('run trainer')
+    print('\n', 'run trainer')
     history = trainer.run(training, evaluation, 1, train_size = 160, eval_size=80)
-    # evaluate
+    # write metrics
+    trainer.metrics_to_mlflow(history)
     
     # save model
     trainer.save_history(history)
-    print('save model')
+    print('\n', 'save model')
     trainer.save_model()
     pass

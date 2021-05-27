@@ -41,6 +41,10 @@ def get_dataset(pattern):
     dataset = dataset.map(to_tuple, num_parallel_calls=5)
     return dataset
 
+def target_simplification(x,y):
+  y_simplified = tf.where(y>1., 0., y)
+  return (x,y_simplified)
+
 def get_training_dataset(folder, batch_size=16, buffer_size = 2000):
     """Get the preprocessed training dataset
     Returns: 
@@ -49,6 +53,7 @@ def get_training_dataset(folder, batch_size=16, buffer_size = 2000):
     glob = 'gs://' + BUCKET + '/' + folder + '/' + TRAINING_BASE + '*'
     dataset = get_dataset(glob)
     dataset = dataset.shuffle(buffer_size).batch(batch_size).repeat()
+    dataset = dataset.map(target_simplification).repeat()
     return dataset
 
 def get_eval_dataset(folder, batch_size=16, buffer_size = 2000):
@@ -59,4 +64,5 @@ def get_eval_dataset(folder, batch_size=16, buffer_size = 2000):
     glob = 'gs://' + BUCKET + '/' + folder + '/' + EVAL_BASE + '*'
     dataset = get_dataset(glob)
     dataset = dataset.batch(1).repeat()
+    dataset = dataset.map(target_simplification).repeat()
     return dataset
