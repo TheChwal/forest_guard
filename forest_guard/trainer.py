@@ -10,6 +10,7 @@ import mlflow
 from mlflow.tracking import MlflowClient
 import joblib
 from google.cloud import storage
+import pickle
 
 from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE
 from forest_guard.parse import get_training_dataset, get_eval_dataset
@@ -32,7 +33,7 @@ class Trainer():
         self.experiment_name = EXPERIMENT_NAME
         self.mlflow = mlflow
         self.model_input_name = model_input_name
-        self.model_output_name = model_output_name
+        self.model_output_name = model_output_name + '/'
         self.pretrained_google = pretrained_google
 
 
@@ -59,11 +60,11 @@ class Trainer():
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
 
-    def upload_model_to_gcp(self):
-        client = storage.Client()
-        bucket = client.bucket(BUCKET)
-        blob = bucket.blob(MODEL_STORAGE_LOCATION+self.model_output_name)
-        blob.upload_from_filename(self.model_output_name)
+    # def upload_model_to_gcp(self):
+    #     client = storage.Client()
+    #     bucket = client.bucket(BUCKET)
+    #     blob = bucket.blob(MODEL_STORAGE_LOCATION+self.model_output_name)
+    #     blob.upload_from_filename(self.model_output_name)
         
     def download_model_from_gcp(self, rm=True):
         if self.pretrained_google:
@@ -81,7 +82,24 @@ class Trainer():
             # if rm:
             #     os.remove('model.joblib')
         return self
+    
+    def save_history(self, history):
+        '''
+        method to save the history of the fit
+        '''
+        with open('trainHistoryDict', 'wb') as file_pi:
+            pickle.dump(history.history, file_pi)
         
+        client = storage.Client().bucket(BUCKET)
+        storage_location = '{}/{}/history'.format(MODEL_STORAGE_LOCATION, self.model_output_name)
+        blob = client.blob(storage_location)
+        
+        blob.upload_from_filename('trainHistoryDict')
+        print("=> history save on cloud storage")
+        
+        os.remove('trainHistoryDict')
+        return None
+    
     def save_model(self):
         """method that saves the model into a .joblib file and uploads it on Google Storage /models folder
         HINTS : use joblib library and google-cloud-storage"""
@@ -95,7 +113,7 @@ class Trainer():
         # self.upload_model_to_gcp(file)
         # print(f"uploaded {file} to gcp cloud storage under \n => {MODEL_STORAGE_LOCATION+file}")
         
-        MODEL_SAVE = 'gs://' + BUCKET + '/' + MODEL_STORAGE_LOCATION
+        MODEL_SAVE = 'gs://' + BUCKET + '/' + MODEL_STORAGE_LOCATION + self.model_output_name
         self.model.save(MODEL_SAVE)
         return None
     
@@ -175,7 +193,7 @@ if __name__ == "__main__":
     # evaluate
     
     # save model
-    
+    trainer.save_history(history)
     print('save model')
     trainer.save_model()
     pass
