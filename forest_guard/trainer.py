@@ -100,7 +100,7 @@ class Trainer():
         blob.upload_from_filename('history.csv')
         print("=> history save on cloud storage")
         
-        os.remove('history.csv')
+        #os.remove('history.csv')
         return None
     
     def save_model(self):
@@ -128,7 +128,8 @@ class Trainer():
             eval_size = 8000,
             optimizer='SGD',
             loss='MeanSquaredError',
-            metrics = ['RootMeanSquaredError']):
+            metrics = ['RootMeanSquaredError'],
+            patience = 5):
 
         """compile and fit the model  
         Return history
@@ -146,7 +147,7 @@ class Trainer():
                     loss=losses.get(loss),
                     metrics=metrics)
         
-        es = EarlyStopping(monitor='val_loss', mode='auto', patience=5, verbose=1, restore_best_weights=True)
+        es = EarlyStopping(monitor='val_loss', mode='auto', patience=patience, verbose=1, restore_best_weights=True)
 
         history = self.model.fit(       x=training, 
                                         epochs=nb_epochs, 
@@ -158,13 +159,6 @@ class Trainer():
         #history = model.fit(self.X, self.y)
         return history
     
-    # def cross_val(self):
-    #     ''' returns the cross val rmse'''
-    #     cv = cross_val_score(self.pipeline, X, y, cv=5, n_jobs=-1, scoring=self.scorer).mean()
-    #     if self.mlflow :
-    #         self.mlflow_log_metric('cross_val', cv)
-    #     return cv
-
     def metrics_to_mlflow(self, history):
         ''' write metrics in mlflow'''
         last_training_loss= history.history.get('loss', [0])[-1]
@@ -182,14 +176,6 @@ class Trainer():
         self.mlflow_log_metric('last_val_accuracy', last_val_accuracy)
         return None
 
-
-    # def evaluate(self, X_test, y_test):
-    #     """evaluates the pipeline on df_test and return the RMSE"""
-    #     y_pred = self.pipeline.predict(X_test)
-    #     rmse = compute_rmse(y_pred, y_test)
-    #     if self.mlflow :
-    #         self.mlflow_log_metric('rmse', rmse)
-    #     return rmse
 
 
 
