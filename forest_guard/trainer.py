@@ -11,6 +11,7 @@ from mlflow.tracking import MlflowClient
 import joblib
 from google.cloud import storage
 import pickle
+import pandas as pd
 
 from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE
 from forest_guard.parse import get_training_dataset, get_eval_dataset
@@ -87,17 +88,19 @@ class Trainer():
         '''
         method to save the history of the fit
         '''
-        with open('trainHistoryDict', 'wb') as file_pi:
-            pickle.dump(history.history, file_pi)
+        hist_df = pd.DataFrame(history.history)
+        hist_csv_file = 'history.csv'
+        with open(hist_csv_file, mode='w') as f:
+            hist_df.to_csv(f)
         
         client = storage.Client().bucket(BUCKET)
         storage_location = '{}{}history'.format(MODEL_STORAGE_LOCATION, 'history_'+self.model_output_name)
         blob = client.blob(storage_location)
         
-        blob.upload_from_filename('trainHistoryDict')
+        blob.upload_from_filename('history.csv')
         print("=> history save on cloud storage")
         
-        os.remove('trainHistoryDict')
+        os.remove('history.csv')
         return None
     
     def save_model(self):
@@ -133,6 +136,9 @@ class Trainer():
         # write model in ml_flow
         if self.mlflow :
             self.mlflow_log_param('model', self.model_output_name) 
+            self.mlflow_log_param('optimizer', optimizer) 
+            self.mlflow_log_param('loss', loss) 
+
 
 
         self.model.compile(
@@ -161,14 +167,14 @@ class Trainer():
 
     def metrics_to_mlflow(self, history):
         ''' write metrics in mlflow'''
-        last_training_loss= history.history['loss'][-1]
-        last_val_loss=history.history['val_loss'][-1]
+        last_training_loss= history.history.get('loss', [0])[-1]
+        last_val_loss=history.history.get('val_loss', [0])[-1]
         
         last_val_mean_io_u=history.history.get('val_mean_io_u',[0])[-1]
         if last_val_mean_io_u == 0:
             last_val_mean_io_u==history.history.get('val_mean_io_u_1',[0])[-1]
         
-        last_val_accuracy=history.history['val_accuracy'][-1]
+        last_val_accuracy=history.history.get('val_accuracy', [0])[-1]
         
         self.mlflow_log_metric('last_loss', last_training_loss)
         self.mlflow_log_metric('last_val_loss', last_val_loss)
