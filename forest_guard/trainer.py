@@ -10,6 +10,8 @@ import mlflow
 from mlflow.tracking import MlflowClient
 import joblib
 from google.cloud import storage
+import pickle
+import pandas as pd
 
 from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE
 from forest_guard.parse import get_training_dataset, get_eval_dataset
@@ -32,7 +34,7 @@ class Trainer():
         self.experiment_name = EXPERIMENT_NAME
         self.mlflow = mlflow
         self.model_input_name = model_input_name
-        self.model_output_name = model_output_name
+        self.model_output_name = model_output_name + '/'
         self.pretrained_google = pretrained_google
 
 
@@ -59,11 +61,11 @@ class Trainer():
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
 
-    def upload_model_to_gcp(self):
-        client = storage.Client()
-        bucket = client.bucket(BUCKET)
-        blob = bucket.blob(MODEL_STORAGE_LOCATION+self.model_output_name)
-        blob.upload_from_filename(self.model_output_name)
+    # def upload_model_to_gcp(self):
+    #     client = storage.Client()
+    #     bucket = client.bucket(BUCKET)
+    #     blob = bucket.blob(MODEL_STORAGE_LOCATION+self.model_output_name)
+    #     blob.upload_from_filename(self.model_output_name)
         
     def download_model_from_gcp(self, rm=True):
         if self.pretrained_google:
@@ -81,7 +83,26 @@ class Trainer():
             # if rm:
             #     os.remove('model.joblib')
         return self
+    
+    def save_history(self, history):
+        '''
+        method to save the history of the fit
+        '''
+        hist_df = pd.DataFrame(history.history)
+        hist_csv_file = 'history.csv'
+        with open(hist_csv_file, mode='w') as f:
+            hist_df.to_csv(f)
         
+        client = storage.Client().bucket(BUCKET)
+        storage_location = '{}{}history'.format(MODEL_STORAGE_LOCATION, 'history_'+self.model_output_name)
+        blob = client.blob(storage_location)
+        
+        blob.upload_from_filename('history.csv')
+        print("=> history save on cloud storage")
+        
+        os.remove('history.csv')
+        return None
+    
     def save_model(self):
         """method that saves the model into a .joblib file and uploads it on Google Storage /models folder
         HINTS : use joblib library and google-cloud-storage"""
@@ -95,7 +116,7 @@ class Trainer():
         # self.upload_model_to_gcp(file)
         # print(f"uploaded {file} to gcp cloud storage under \n => {MODEL_STORAGE_LOCATION+file}")
         
-        MODEL_SAVE = 'gs://' + BUCKET + '/' + MODEL_STORAGE_LOCATION
+        MODEL_SAVE = 'gs://' + BUCKET + '/' + MODEL_STORAGE_LOCATION + self.model_output_name
         self.model.save(MODEL_SAVE)
         return None
     
@@ -115,6 +136,9 @@ class Trainer():
         # write model in ml_flow
         if self.mlflow :
             self.mlflow_log_param('model', self.model_output_name) 
+            self.mlflow_log_param('optimizer', optimizer) 
+            self.mlflow_log_param('loss', loss) 
+
 
 
         self.model.compile(
@@ -141,6 +165,24 @@ class Trainer():
     #         self.mlflow_log_metric('cross_val', cv)
     #     return cv
 
+    def metrics_to_mlflow(self, history):
+        ''' write metrics in mlflow'''
+        last_training_loss= history.history.get('loss', [0])[-1]
+        last_val_loss=history.history.get('val_loss', [0])[-1]
+        
+        last_val_mean_io_u=history.history.get('val_mean_io_u',[0])[-1]
+        if last_val_mean_io_u == 0:
+            last_val_mean_io_u==history.history.get('val_mean_io_u_1',[0])[-1]
+        
+        last_val_accuracy=history.history.get('val_accuracy', [0])[-1]
+        
+        self.mlflow_log_metric('last_loss', last_training_loss)
+        self.mlflow_log_metric('last_val_loss', last_val_loss)
+        self.mlflow_log_metric('last_val_mean_io_u', last_val_mean_io_u)
+        self.mlflow_log_metric('last_val_accuracy', last_val_accuracy)
+        return None
+
+
     # def evaluate(self, X_test, y_test):
     #     """evaluates the pipeline on df_test and return the RMSE"""
     #     y_pred = self.pipeline.predict(X_test)
@@ -152,11 +194,7 @@ class Trainer():
 
 
 if __name__ == "__main__":
-    # get data
-    
-    # clean data
-    
-    # set X and y, val and train
+
     #get training and eval
     training = get_training_dataset(FOLDER)
     evaluation = get_eval_dataset(FOLDER)
@@ -164,18 +202,19 @@ if __name__ == "__main__":
     # hold out
     
     # train
-    print('instantiate trainer')
-    trainer = Trainer('test_model', pretrained_google=False, model_input_name='model_trained')
+    print('\n', 'instantiate trainer')
+    trainer = Trainer('test_model')
     
-    print('download model')
+    print('\n', 'download model')
     trainer.download_model_from_gcp()
     
-    print('run trainer')
+    print('\n', 'run trainer')
     history = trainer.run(training, evaluation, 1, train_size = 160, eval_size=80)
-    # evaluate
+    # write metrics
+    trainer.metrics_to_mlflow(history)
     
     # save model
-    
-    print('save model')
+    trainer.save_history(history)
+    print('\n', 'save model')
     trainer.save_model()
     pass

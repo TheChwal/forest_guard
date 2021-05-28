@@ -7,7 +7,7 @@ requirements = [x.strip() for x in content if 'git+' not in x]
 
 setup(name='forest_guard',
       version="1.0",
-      description="Project Description",
+      description="Project to predict forest / non forest from landsat",
       packages=find_packages(),
       install_requires=requirements,
       test_suite='tests',

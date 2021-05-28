@@ -28,6 +28,8 @@ six>=1.14
 joblib
 memoized-property
 termcolor
+
+# map
 earthengine-api
 folium
 rasterio
