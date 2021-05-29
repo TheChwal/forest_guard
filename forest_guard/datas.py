@@ -130,16 +130,16 @@ def export_to_cloud_sampling_train_eval(trainingPolys, evalPolys, arrays, n, N, 
                                 )
             geomSample = geomSample.merge(sample)
 
-    desc = EVAL_BASE + '_g' + str(g)
-    task = ee.batch.Export.table.toCloudStorage(
-                                            collection = geomSample,
-                                            description = desc,
-                                            bucket = BUCKET,
-                                            fileNamePrefix = folder + '/' + desc,
-                                            fileFormat = 'TFRecord',
-                                            selectors = BANDS + [RESPONSE]
-                                            )
-    task.start()
+        desc = EVAL_BASE + '_g' + str(g)
+        task = ee.batch.Export.table.toCloudStorage(
+                                                collection = geomSample,
+                                                description = desc,
+                                                bucket = BUCKET,
+                                                fileNamePrefix = folder + '/' + desc,
+                                                fileFormat = 'TFRecord',
+                                                selectors = BANDS + [RESPONSE]
+                                                )
+        task.start()
     
     print(task.status())
     # Monitor task progress
@@ -149,5 +149,11 @@ def export_to_cloud_sampling_train_eval(trainingPolys, evalPolys, arrays, n, N, 
     while task.active():
         print('Polling for task (id: {}).'.format(task.id))
         time.sleep(5)
-    print(task.status())
+        
+    # Error condition
+    if task.status()['state'] != 'COMPLETED':
+        print('Error with image export.')
+        print(task.status())
+    else:
+        print('Image export completed.')
     return None

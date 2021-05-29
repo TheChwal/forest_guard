@@ -13,7 +13,7 @@ from google.cloud import storage
 import pickle
 import pandas as pd
 
-from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE
+from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE, MODEL_STORAGE_LOCATION
 from forest_guard.parse import get_training_dataset, get_eval_dataset
 
 import os
@@ -24,7 +24,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 MLFLOW_URI = "https://mlflow.lewagon.co/"
 EXPERIMENT_NAME = "[FR] [PARIS] [Forest] Forest Guard"
-MODEL_STORAGE_LOCATION = 'models/forest_guard/'
 
 class Trainer():
     def __init__(self, model_output_name, 
