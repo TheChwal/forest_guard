@@ -125,8 +125,8 @@ class Trainer():
             nb_epochs,
             train_size = 16000,
             eval_size = 8000,
-            optimizer='SGD',
-            loss='MeanSquaredError',
+            optimizer='adam',
+            loss='binary_crossentropy',
             metrics = ['RootMeanSquaredError'],
             patience = 5):
 
