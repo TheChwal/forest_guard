@@ -7,7 +7,7 @@ FOLDER = 'data_forest_guards'
 TRAINING_BASE = 'training_patches'
 EVAL_BASE = 'eval_patches'
 MODEL_STORAGE_LOCATION = 'models/forest_guard/'
-
+PROJECT = 'wagon-bootcamp-data'
 
 OPTICAL_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7']
 THERMAL_BANDS = ['B10', 'B11']

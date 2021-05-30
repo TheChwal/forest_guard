@@ -3,7 +3,7 @@ module to:
 - retrieve history from cloud storage
 - provide the plot function
 '''
-from forest_guard.params import BUCKET, MODEL_STORAGE_LOCATION
+from forest_guard.params import BUCKET, MODEL_STORAGE_LOCATION, PROJECT
 from google.cloud import storage
 import matplotlib.pyplot as plt
 import os
@@ -17,7 +17,7 @@ def get_history(model_name):
     hist_csv_file = 'history.csv'
     
     
-    client = storage.Client().bucket(BUCKET)
+    client = storage.Client(project=PROJECT).bucket(BUCKET)
     storage_location = '{}{}/history'.format(MODEL_STORAGE_LOCATION, 'history_'+model_name)
     blob = client.blob(storage_location)
     
