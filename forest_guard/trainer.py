@@ -8,9 +8,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from memoized_property import memoized_property
 import mlflow
 from mlflow.tracking import MlflowClient
-import joblib
 from google.cloud import storage
-import pickle
 import pandas as pd
 
 from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE, MODEL_STORAGE_LOCATION, PROJECT
