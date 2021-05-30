@@ -28,6 +28,21 @@ def get_history(model_name):
     os.remove(hist_csv_file)
     return history
 
+def get_history_colab(model_name):
+    '''
+    method to get back the history of the fit
+    and return the dict
+    '''
+    
+    model_name_storage = model_name+'/'
+    storage_location = '{}{}history'.format(MODEL_STORAGE_LOCATION, 'history_'+model_name_storage)
+
+    hist_csv_file = 'gs://'+BUCKET+'/'+storage_location
+    hist = pd.read_csv(hist_csv_file)
+
+    return hist
+    
+
 def plot_history_accuracy(history, title='', axs=None, exp_name=""):
     if axs is not None:
         ax1, ax2 = axs
