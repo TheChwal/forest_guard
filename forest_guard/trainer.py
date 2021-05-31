@@ -4,6 +4,8 @@ from tensorflow.python.keras import models
 from tensorflow.python.keras import metrics
 from tensorflow.python.keras import optimizers
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.metrics import MeanIoU
+
 
 from memoized_property import memoized_property
 import mlflow
@@ -13,6 +15,7 @@ import pandas as pd
 
 from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE, MODEL_STORAGE_LOCATION, PROJECT
 from forest_guard.parse import get_training_dataset, get_eval_dataset
+from forest_guard.losses import dice_loss, tversky_loss, lovasz_softmax
 
 import os
 
@@ -90,7 +93,7 @@ class Trainer():
         with open(hist_csv_file, mode='w') as f:
             hist_df.to_csv(f)
         
-        client = storage.Client(projet=PROJECT).bucket(BUCKET)
+        client = storage.Client(project=PROJECT).bucket(BUCKET)
         storage_location = '{}{}history'.format(MODEL_STORAGE_LOCATION, 'history_'+self.model_output_name)
         blob = client.blob(storage_location)
         
@@ -180,25 +183,41 @@ class Trainer():
 if __name__ == "__main__":
 
     #get training and eval
+    ################
+    ## UPDATE FOLDER
+    ################
     training = get_training_dataset(FOLDER)
     evaluation = get_eval_dataset(FOLDER)
     
-    # hold out
-    
     # train
     print('\n', 'instantiate trainer')
-    trainer = Trainer('test_model')
+    ################
+    ## UPDATE NAME
+    ################
+    trainer = Trainer('ai_platform_lovasz_softmax')
     
     print('\n', 'download model')
     trainer.download_model_from_gcp()
     
+    
+    iou = MeanIoU(num_classes=2)
     print('\n', 'run trainer')
-    history = trainer.run(training, evaluation, 1, train_size = 160, eval_size=80)
+    history = trainer.run(training,
+                      evaluation,
+                      50,
+                      metrics = [iou, "mae", "accuracy"], 
+                      optimizer='adam',
+                      loss=lovasz_softmax ,
+                      train_size = 1600,
+                      eval_size=800,
+                     patience=5)
     # write metrics
     trainer.metrics_to_mlflow(history)
     
     # save model
-    trainer.save_history(history)
     print('\n', 'save model')
     trainer.save_model()
+    
+    #save_history
+    trainer.save_history(history)
     pass

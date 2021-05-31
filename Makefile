@@ -9,8 +9,8 @@ PROJECT_ID=wagon-bootcamp-data
 REGION=europe-west1
 
 PYTHON_VERSION=3.7
-FRAMEWORK=scikit-learn
-RUNTIME_VERSION=2.2
+FRAMEWORK=tensorflow
+RUNTIME_VERSION=2.4
 
 ##### Package params  - - - - - - - - - - - - - - - - - - -
 
@@ -34,7 +34,8 @@ gcp_submit_training:
 		--python-version=${PYTHON_VERSION} \
 		--runtime-version=${RUNTIME_VERSION} \
 		--region ${REGION} \
-		--stream-logs
+		--stream-logs \
+		--scale-tier=BASIC_GPU
 
 
 
