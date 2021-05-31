@@ -3,7 +3,7 @@ import tensorflow as tf
 BUCKET = 'forest_guard_bucket'  # ⚠️ replace with your BUCKET NAME
 
 # where the data exported with ee are stored
-FOLDER = 'data_forest_guards'
+FOLDER = 'JP_data_trainval_large_100_1000'
 TRAINING_BASE = 'training_patches'
 EVAL_BASE = 'eval_patches'
 MODEL_STORAGE_LOCATION = 'models/forest_guard/'
