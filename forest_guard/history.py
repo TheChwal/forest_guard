@@ -3,7 +3,7 @@ module to:
 - retrieve history from cloud storage
 - provide the plot function
 '''
-from forest_guard.params import BUCKET, MODEL_STORAGE_LOCATION
+from forest_guard.params import BUCKET, MODEL_STORAGE_LOCATION, PROJECT
 from google.cloud import storage
 import matplotlib.pyplot as plt
 import os
@@ -17,7 +17,7 @@ def get_history(model_name):
     hist_csv_file = 'history.csv'
     
     
-    client = storage.Client().bucket(BUCKET)
+    client = storage.Client(project=PROJECT).bucket(BUCKET)
     storage_location = '{}{}/history'.format(MODEL_STORAGE_LOCATION, 'history_'+model_name)
     blob = client.blob(storage_location)
     
@@ -27,6 +27,21 @@ def get_history(model_name):
     
     os.remove(hist_csv_file)
     return history
+
+def get_history_colab(model_name):
+    '''
+    method to get back the history of the fit
+    and return the dict
+    '''
+    
+    model_name_storage = model_name+'/'
+    storage_location = '{}{}history'.format(MODEL_STORAGE_LOCATION, 'history_'+model_name_storage)
+
+    hist_csv_file = 'gs://'+BUCKET+'/'+storage_location
+    hist = pd.read_csv(hist_csv_file)
+
+    return hist
+    
 
 def plot_history_accuracy(history, title='', axs=None, exp_name=""):
     if axs is not None:

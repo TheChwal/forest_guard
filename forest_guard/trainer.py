@@ -8,12 +8,10 @@ from tensorflow.keras.callbacks import EarlyStopping
 from memoized_property import memoized_property
 import mlflow
 from mlflow.tracking import MlflowClient
-import joblib
 from google.cloud import storage
-import pickle
 import pandas as pd
 
-from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE, MODEL_STORAGE_LOCATION
+from forest_guard.params import BUCKET, FOLDER, BATCH_SIZE, MODEL_STORAGE_LOCATION, PROJECT
 from forest_guard.parse import get_training_dataset, get_eval_dataset
 
 import os
@@ -92,7 +90,7 @@ class Trainer():
         with open(hist_csv_file, mode='w') as f:
             hist_df.to_csv(f)
         
-        client = storage.Client().bucket(BUCKET)
+        client = storage.Client(projet=PROJECT).bucket(BUCKET)
         storage_location = '{}{}history'.format(MODEL_STORAGE_LOCATION, 'history_'+self.model_output_name)
         blob = client.blob(storage_location)
         
@@ -101,6 +99,7 @@ class Trainer():
         
         #os.remove('history.csv')
         return None
+   
     
     def save_model(self):
         """method that saves the model into a .joblib file and uploads it on Google Storage /models folder
@@ -125,8 +124,8 @@ class Trainer():
             nb_epochs,
             train_size = 16000,
             eval_size = 8000,
-            optimizer='SGD',
-            loss='MeanSquaredError',
+            optimizer='adam',
+            loss='binary_crossentropy',
             metrics = ['RootMeanSquaredError'],
             patience = 5):
 
