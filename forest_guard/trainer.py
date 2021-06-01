@@ -119,8 +119,8 @@ class Trainer():
         decoder = layers.Activation('relu')(decoder)
         return decoder
     
-    def init_model(self):    
-        inputs = layers.Input(shape=[256, 256, len(BANDS)]) # 256
+    def init_model(self, sigmoid=True):    
+        inputs = layers.Input(shape=[None, None, len(BANDS)]) # 256
         encoder0_pool, encoder0 = self.encoder_block(inputs, 32) # 128
         encoder1_pool, encoder1 = self.encoder_block(encoder0_pool, 64) # 64
         encoder2_pool, encoder2 = self.encoder_block(encoder1_pool, 128) # 32
@@ -132,12 +132,16 @@ class Trainer():
         decoder2 = self.decoder_block(decoder3, encoder2, 128) # 64
         decoder1 = self.decoder_block(decoder2, encoder1, 64) # 128
         decoder0 = self.decoder_block(decoder1, encoder0, 32) # 256
-        outputs = layers.Conv2D(1, (1, 1), activation='sigmoid')(decoder0)
+        if sigmoid:
+            outputs = layers.Conv2D(1, (1, 1), activation='sigmoid')(decoder0)
+        else:
+            outputs = layers.Conv2D(1, (1, 1), activation='linear')(decoder0)
+        
         self.model = models.Model(inputs=[inputs], outputs=[outputs])
         return self
     
     ######################################" END MODEL FROM SCRATCH"
-    def save_model(self):
+    def save_model(self, save_format=None):
         """method that saves the model into a .joblib file and uploads it on Google Storage /models folder
         HINTS : use joblib library and google-cloud-storage"""
 
@@ -151,7 +155,7 @@ class Trainer():
         # print(f"uploaded {file} to gcp cloud storage under \n => {MODEL_STORAGE_LOCATION+file}")
         
         MODEL_SAVE = 'gs://' + BUCKET + '/' + MODEL_STORAGE_LOCATION + self.model_output_name
-        self.model.save(MODEL_SAVE)
+        self.model.save(MODEL_SAVE, save_format=save_format)
         return None
     
     
@@ -228,30 +232,31 @@ if __name__ == "__main__":
     ################
     ## UPDATE NAME
     ################
-    trainer = Trainer('ai_platform_tversky_ownmodel')
+    trainer = Trainer('adam_binary_tf_none_none')
     
     # print('\n', 'download model')
     # trainer.download_model_from_gcp()
     
-    trainer.init_model()
+    
+    trainer.init_model(sigmoid=True) #sigmoid False for lovasz
     
     #iou = MeanIoU(num_classes=2)
     print('\n', 'run trainer')
     history = trainer.run(training,
                       evaluation,
                       100,
-                      metrics = [iou, "mae", "accuracy"], 
+                      metrics = ["mae", "accuracy"], #iou logit for lovasz
                       optimizer='adam',
-                      loss=tversky_loss(0.5) ,
-                      train_size = 1600,
-                      eval_size=800,
-                     patience=10)
+                      loss='binary_crossentropy',
+                      train_size = 3200,
+                      eval_size=1600,
+                     patience=7)
     # write metrics
     trainer.metrics_to_mlflow(history)
     
     # save model
     print('\n', 'save model')
-    trainer.save_model()
+    trainer.save_model(save_format='tf')
     
     #save_history
     trainer.save_history(history)
