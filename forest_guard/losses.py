@@ -13,6 +13,45 @@ def dice_loss(y_true, y_pred):
 
     return 1 - numerator / denominator
 
+def iou(y_true, y_pred):
+    '''
+    dice_loss
+    '''
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.cast(y_pred, tf.float32)
+    # y_pred = tf.math.sigmoid(y_pred)
+    numerator = tf.reduce_sum(y_true * y_pred)
+    denominator = tf.reduce_sum(y_true + y_pred)-numerator
+    iou1 = numerator / denominator
+    
+    y_true_op = 1-y_true
+    y_pred_op = 1-y_pred
+    numerator = tf.reduce_sum(y_true_op * y_pred_op)
+    denominator = tf.reduce_sum(y_true_op + y_pred_op)-numerator
+    iou2 = numerator / denominator
+    
+    return tf.cast(0.5* (iou1 + iou2), tf.float32)
+
+def iou_logit(y_true, y_pred):
+    '''
+    iou with pred as logit space (for lovasz)
+    '''
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.math.sigmoid(y_pred)
+    y_pred = tf.cast(y_pred, tf.float32)
+    numerator = tf.reduce_sum(y_true * y_pred)
+    denominator = tf.reduce_sum(y_true + y_pred)-numerator
+    iou1 = numerator / denominator
+    
+    y_true_op = 1-y_true
+    y_pred_op = 1-y_pred
+    numerator = tf.reduce_sum(y_true_op * y_pred_op)
+    denominator = tf.reduce_sum(y_true_op + y_pred_op)-numerator
+    iou2 = numerator / denominator
+    
+    return tf.cast(0.5* (iou1 + iou2), tf.float32)
+
+
 def tversky_loss(beta):
     '''
     tversky loss is like dice loss with more weight on FP or FN
@@ -113,10 +152,11 @@ def flatten_binary_scores(scores, labels, ignore=None):
     return vscores, vlabels
 
 
-def lovasz_softmax(y_true, y_pred, logit=True):
+def lovasz_softmax(y_true, y_pred):
     #Transform [0, 1] to logit space for y_pred
-    y_pred_logit = y_pred
-    if logit:
-        y_pred_logit = -tf.math.log((1 / (y_pred )) - 1)
+    # y_pred_logit = y_pred
+    # if logit:
+    #     y_pred_logit = -tf.math.log((1 / (y_pred )) - 1)
 
-    return lovasz_hinge(labels=y_true, logits=y_pred_logit)
+    return lovasz_hinge(labels=y_true, logits=y_pred)
+
